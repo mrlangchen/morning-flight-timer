@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>出发时间计算器 v2</title>
+<style>
+  :root{
+    --ink:#0e1116;
+    --line:#e4e7ec;
+    --line-2:#eef0f3;
+    --muted:#6b7280;
+    --muted-2:#98a0ac;
+    --paper:#f6f7f9;
+    --card:#ffffff;
+    --accent:#0057ff;
+    --accent-soft:#e8effe;
+    --home:#b25a00;
+    --home-soft:#fdf1e3;
+    --mono:"SF Mono",ui-monospace,"Roboto Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:var(--sans);background:var(--paper);color:var(--ink);
+    line-height:1.5;padding:28px 18px 64px;-webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:560px;margin:0 auto}
+
+  .head{margin-bottom:22px}
+  .kicker{
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted-2);display:flex;align-items:center;gap:8px;margin-bottom:10px;
+  }
+  .kicker::before{content:"";width:22px;height:1px;background:var(--muted-2);display:inline-block}
+  h1{font-size:26px;font-weight:680;letter-spacing:-.02em;line-height:1.15}
+  .sub{color:var(--muted);font-size:14px;margin-top:6px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px}
+  .card-t{
+    font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;
+  }
+
+  .flight-row{display:flex;align-items:center;gap:14px}
+  .flight-label{font-size:15px;font-weight:600;flex:1}
+  input[type="time"]{
+    font-family:var(--mono);font-size:22px;font-weight:600;
+    border:1.5px solid var(--line);background:var(--paper);border-radius:10px;
+    padding:9px 12px;color:var(--ink);letter-spacing:.02em;
+  }
+  input[type="time"]:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
+
+  .legend{font-size:12px;color:var(--muted);margin-bottom:4px;display:flex;gap:14px}
+  .legend .dot{display:inline-flex;align-items:center;gap:5px}
+  .legend .sw{width:9px;height:9px;border-radius:3px;display:inline-block}
+  .sw.h{background:var(--home)}
+  .sw.o{background:var(--accent)}
+
+  .step{display:flex;align-items:center;gap:9px;padding:12px 0;border-bottom:1px solid var(--line-2)}
+  .step:last-of-type{border-bottom:none}
+  .grip{font-family:var(--mono);font-size:12px;color:var(--muted-2);width:16px;text-align:center;cursor:grab;user-select:none;flex-shrink:0}
+  .grip:active{cursor:grabbing}
+  .step.drag-over{border-top:2px solid var(--accent)}
+  .step.dragging{opacity:.4}
+  .step-name{
+    flex:1;min-width:0;border:none;background:transparent;
+    font-size:15px;font-weight:500;color:var(--ink);padding:4px 2px;border-radius:6px;
+    text-overflow:ellipsis;
+  }
+  .step-name:focus{outline:none;background:var(--paper);box-shadow:0 0 0 2px var(--accent-soft)}
+
+  .loc{
+    flex-shrink:0;font-family:var(--mono);font-size:12px;font-weight:600;
+    border:1px solid transparent;border-radius:7px;padding:5px 7px;cursor:pointer;
+    white-space:nowrap;line-height:1;transition:.12s;
+  }
+  .loc.home{background:var(--home-soft);color:var(--home)}
+  .loc.out{background:var(--accent-soft);color:var(--accent)}
+
+  .dur-box{display:flex;align-items:center;gap:5px;flex-shrink:0}
+  input.dur{
+    font-family:var(--mono);width:50px;text-align:right;font-size:16px;font-weight:600;
+    border:1.5px solid var(--line);border-radius:8px;padding:6px 7px;color:var(--ink);background:var(--paper);
+  }
+  input.dur:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
+  .unit{font-size:11px;color:var(--muted);font-family:var(--mono)}
+  .del{
+    width:24px;height:24px;flex-shrink:0;border:none;background:transparent;color:var(--muted-2);
+    font-size:17px;line-height:1;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.12s;
+  }
+  .del:hover{background:var(--home-soft);color:var(--home)}
+
+  .add{
+    width:100%;margin-top:14px;border:1.5px dashed var(--line);background:transparent;border-radius:10px;
+    padding:11px;font-family:var(--sans);font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;transition:.12s;
+  }
+  .add:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+
+  .buf-row{display:flex;align-items:center;gap:12px}
+  .buf-txt{flex:1}
+  .buf-txt .bt{font-size:15px;font-weight:600}
+  .buf-txt .bd{font-size:12.5px;color:var(--muted);margin-top:2px}
+
+  .result{background:var(--ink);color:#fff;border-radius:14px;padding:20px;position:sticky;bottom:14px;box-shadow:0 8px 30px rgba(14,17,22,.28)}
+  .r-grid{display:flex;align-items:stretch;gap:8px}
+  .r-col{flex:1;min-width:0}
+  .r-div{width:1px;background:rgba(255,255,255,.14);flex-shrink:0;margin:2px 4px}
+  .r-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#8b93a1;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+  .r-label .ic{width:8px;height:8px;border-radius:3px;display:inline-block}
+  .r-label .ic.h{background:var(--home)}
+  .r-label .ic.o{background:var(--accent)}
+  .r-time{font-family:var(--mono);font-size:36px;font-weight:680;line-height:1;letter-spacing:-.01em;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+  .r-time .day{font-size:12px;font-weight:500;color:#f0b24a;letter-spacing:0;font-family:var(--sans)}
+  .r-total{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.12);display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#c3c9d2}
+  .r-total b{color:#fff;font-family:var(--mono);font-weight:600}
+  .empty{font-size:14px;color:#8b93a1}
+
+  @media (max-width:420px){
+    h1{font-size:23px}
+    .r-time{font-size:30px}
+    input[type="time"]{font-size:19px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <div class="kicker">Departure Planner · v2</div>
+    <h1>出发时间计算器</h1>
+    <p class="sub">给每个环节标好「在家 / 在外」，自动算出<b>起床</b>和<b>出发</b>两个时刻。</p>
+  </div>
+
+  <div class="card">
+    <div class="card-t">航班起飞时间</div>
+    <div class="flight-row">
+      <span class="flight-label">起飞时刻 T0</span>
+      <input type="time" id="flight" value="14:00">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-t">
+      <span>各环节 · 时间线顺序</span>
+      <span style="text-transform:none;letter-spacing:0;color:var(--muted-2)">可拖动排序</span>
+    </div>
+    <div class="legend">
+      <span class="dot"><span class="sw h"></span>在家（起床后 · 出门前）</span>
+      <span class="dot"><span class="sw o"></span>在外（上路 · 机场）</span>
+    </div>
+    <div id="steps"></div>
+    <button class="add" id="add">+ 添加环节</button>
+  </div>
+
+  <div class="card">
+    <div class="card-t">安全冗余 Buffer</div>
+    <div class="buf-row">
+      <div class="buf-txt">
+        <div class="bt">额外预留（在外）</div>
+        <div class="bd">应对排队、找车位、托运等波动</div>
+      </div>
+      <div class="dur-box">
+        <input class="dur" id="buffer" type="number" min="0" value="0">
+        <span class="unit">min</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="result">
+    <div class="r-grid">
+      <div class="r-col">
+        <div class="r-label"><span class="ic h"></span>起床</div>
+        <div id="wake" class="r-time"></div>
+      </div>
+      <div class="r-div"></div>
+      <div class="r-col">
+        <div class="r-label"><span class="ic o"></span>出发 · 发车</div>
+        <div id="dep" class="r-time"></div>
+      </div>
+    </div>
+    <div class="r-total">
+      <span>全程必需时长（起床 → 起飞）</span>
+      <b id="rtotal">—</b>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  // loc: 'home' 在家 / 'out' 在外  —— 按真实时间线从早到晚排列
+  const DEFAULTS = [
+    {name:"起床",                     dur:10, loc:"home"},
+    {name:"梳洗准备",                 dur:20, loc:"home"},
+    {name:"自驾（家→停车场）",         dur:45, loc:"out"},
+    {name:"接驳车（停车场→航站楼）",   dur:25, loc:"out"},
+    {name:"过安检",                   dur:20, loc:"out"},
+    {name:"Coffee Break",            dur:10, loc:"out"},
+    {name:"开始登机（起飞前）",        dur:30, loc:"out"},
+  ];
+
+  const stepsEl=document.getElementById('steps');
+  const flightEl=document.getElementById('flight');
+  const bufferEl=document.getElementById('buffer');
+  const wakeEl=document.getElementById('wake');
+  const depEl=document.getElementById('dep');
+  const rtotalEl=document.getElementById('rtotal');
+  let steps=DEFAULTS.map(d=>({...d}));
+  let dragIdx=null;
+
+  function render(){
+    stepsEl.innerHTML='';
+    steps.forEach((s,i)=>{
+      const row=document.createElement('div');
+      row.className='step';row.dataset.i=i;
+      const locCls=s.loc==='home'?'home':'out';
+      const locTxt=s.loc==='home'?'在家':'在外';
+      row.innerHTML=`
+        <span class="grip" title="拖动排序">⋮⋮</span>
+        <input class="step-name" value="${esc(s.name)}" placeholder="环节名称">
+        <button class="loc ${locCls}" title="点击切换 在家/在外">${locTxt}</button>
+        <div class="dur-box">
+          <input class="dur" type="number" min="0" value="${s.dur}">
+          <span class="unit">min</span>
+        </div>
+        <button class="del" title="删除">×</button>`;
+
+      row.querySelector('.step-name').addEventListener('input',e=>{steps[i].name=e.target.value});
+      row.querySelector('.dur').addEventListener('input',e=>{steps[i].dur=parseInt(e.target.value)||0;compute()});
+      row.querySelector('.del').addEventListener('click',()=>{steps.splice(i,1);render();compute()});
+
+      const locBtn=row.querySelector('.loc');
+      locBtn.addEventListener('click',()=>{
+        steps[i].loc=steps[i].loc==='home'?'out':'home';
+        locBtn.className='loc '+(steps[i].loc==='home'?'home':'out');
+        locBtn.textContent=steps[i].loc==='home'?'在家':'在外';
+        compute();
+      });
+
+      const grip=row.querySelector('.grip');
+      grip.addEventListener('mousedown',()=>{row.draggable=true});
+      grip.addEventListener('touchstart',()=>{row.draggable=true},{passive:true});
+      row.addEventListener('dragstart',e=>{dragIdx=i;row.classList.add('dragging');e.dataTransfer.effectAllowed='move'});
+      row.addEventListener('dragend',()=>{row.draggable=false;row.classList.remove('dragging');document.querySelectorAll('.step').forEach(x=>x.classList.remove('drag-over'))});
+      row.addEventListener('dragover',e=>{e.preventDefault();row.classList.add('drag-over')});
+      row.addEventListener('dragleave',()=>row.classList.remove('drag-over'));
+      row.addEventListener('drop',e=>{
+        e.preventDefault();row.classList.remove('drag-over');
+        const from=dragIdx,to=i;
+        if(from===null||from===to)return;
+        const moved=steps.splice(from,1)[0];steps.splice(to,0,moved);
+        dragIdx=null;render();compute();
+      });
+
+      stepsEl.appendChild(row);
+    });
+  }
+
+  function fmt(mins){
+    const h=Math.floor(mins/60),m=mins%60;
+    return (h>0?h+'h ':'')+m+'min';
+  }
+  function clock(totalFromTakeoff, takeoffMin){
+    let t=takeoffMin-totalFromTakeoff, off=0;
+    while(t<0){t+=1440;off--}
+    while(t>=1440){t-=1440;off++}
+    const hh=String(Math.floor(t/60)).padStart(2,'0');
+    const mm=String(t%60).padStart(2,'0');
+    let tag='';
+    if(off===-1)tag='<span class="day">前一天</span>';
+    else if(off===1)tag='<span class="day">次日</span>';
+    return `${hh}:${mm}${tag}`;
+  }
+
+  function compute(){
+    const sumOut=steps.filter(s=>s.loc==='out').reduce((a,s)=>a+(s.dur||0),0);
+    const sumHome=steps.filter(s=>s.loc==='home').reduce((a,s)=>a+(s.dur||0),0);
+    const buf=parseInt(bufferEl.value)||0;
+    const total=sumOut+sumHome+buf;
+    rtotalEl.textContent=fmt(total);
+
+    const fv=flightEl.value;
+    if(!fv){wakeEl.innerHTML='<span class="empty">填起飞时间</span>';depEl.innerHTML='<span class="empty">—</span>';return}
+    const [fh,fm]=fv.split(':').map(Number);
+    const takeoff=fh*60+fm;
+
+    // 出发 = 起飞 − (在外环节 + buffer)；起床 = 出发 − 在家环节
+    depEl.innerHTML=clock(sumOut+buf, takeoff);
+    wakeEl.innerHTML=clock(sumOut+buf+sumHome, takeoff);
+  }
+
+  function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+  document.getElementById('add').addEventListener('click',()=>{
+    steps.push({name:'新环节',dur:10,loc:'out'});
+    render();compute();
+    const inp=stepsEl.querySelectorAll('.step-name');
+    inp[inp.length-1].focus();inp[inp.length-1].select();
+  });
+  flightEl.addEventListener('input',compute);
+  bufferEl.addEventListener('input',compute);
+
+  render();compute();
+})();
+</script>
+</body>
+</html>
